@@ -31,6 +31,15 @@ export interface IOrder { // интерфейс заказа для отправ
 	items: string[];
 }
 
+export interface IOrderForm { // интерфейс для работы с формой
+	payment: PaymentType;
+	email: string;
+	phone: string;
+	address: string;
+}
+
+export type IOrderFormInput = keyof IOrderForm;
+
 export interface IOrderResponse { // интерфейс ответа от сервера созданного заказа, возвращает id и сумму заказа
 	id: string;
 	total: number;
