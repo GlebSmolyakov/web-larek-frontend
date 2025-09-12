@@ -110,6 +110,17 @@ total: number;
 
 ```
 
+интерфейс для работы с формой
+
+```
+export interface IOrderForm {
+	payment: PaymentType;
+	email: string;
+	phone: string;
+	address: string;
+}
+
+```
 ## Архитектура приложения
 
 Код приложения разделен на слои согласно парадигме MVP:
@@ -142,17 +153,15 @@ total: number;
 Конструктор класса принимает инстант брокера событий\
 В полях класса хранятся следующие данные:
 
-- `_items: IItemList` - список всех карточек
-- `_preview: ItemId | null` - id карточки, которая выбрана для просмтора
+- `_items: IItem[]` - список всех карточек
 - `events: IEvents` - экземпляр класса `EventEmitter` для инициации событий при изменении данных.
 
 Так же класс предоставляет набор методов для взаимодействия с этими данными.
 
 - `setItems(items: IItem[]): void` — сохраняет список карточек
 - `getAllItems (): IItem[]` - возвращает список всех карточек
-- `getItem (id: ItemId): IItemCard | null` - находит карточку по id
-- `setPreview(id: ItemId): void` — находит карточку по id и генерирует событие
-- `getPreview(): IItemCard | null` — возвращает выбранную карточку
+- `findItem(id: ItemId): IItemCard | null` - вспомогательный метод для поиска карточки по id
+- `getItem (id: ItemId): IItemCard | null` - отдает карточку по id
 
 ### Класс CartModel 
 
@@ -170,8 +179,7 @@ total: number;
 - `clearCart(): void` - очищает корзину
 - `get items():ItemId[]` - геттер, возвращает текущие id товаров
 - `get count():number`- геттер, возвращает кол-во товаров в корзине
-- `save:void` - сохраняет состояние корзины в localStorage
-- `load:void` - загружает состояние корзины из localStorage
+- `getTotal(allItems: IItemCard[]): number ` - метод для подсчета общий суммы
 
 ### Класс OrderModel
 
@@ -180,10 +188,6 @@ total: number;
 В полях класса хранятся следующие данные:
 
 - `_data: IOrderForm` - объект с полями формы заказа
-- `payment: PaymentType | null` - способ оплаты
-- `address: string` - адрес покупателя
-- `email: string` - email покупателя
-- `phone: string` - телефон покупателя
 - `events: IEvents` - экземпляр класса `EventEmitter` для инициации событий при изменении данных.
 
 Так же класс предоставляет набор методов для взаимодействия с этими данными.
@@ -206,7 +210,7 @@ total: number;
 Поля класса:
 
 - `_container: HTMLElement` - элемент контейнера модального окна 
-- `_overlay: HTMLElement` - оверлей
+- `_closeButton: HTMLElement` - кнопка закрытия
 - `_content: HTMLElement` - контейнер для вставки содержимого
 - `events: IEvents` - брокер событий
 
@@ -221,11 +225,11 @@ total: number;
 
 Класс отвечает за просмотр карточек товара 
 
-- `constructor(container: HTMLElement, events: IEvents)` Конструктор принимает селектор, по которому будет идентифицированы разметка, а также экземпляр класса `EventEmitter` для возможности инициации событий.
+- `constructor(templateId: string, events: IEvents)` Конструктор принимает селектор, по которому будет идентифицированы разметка, а также экземпляр класса `EventEmitter` для возможности инициации событий.
 
 Поля класса:
 
-- `_container: HTMLElement` - элемент контейнера модального окна
+- `_template: HTMLTemplateElement` - элемент контейнера модального окна
 - `events: IEvents` - брокер событий
 
 Так же класс предоставляет набор методов:
@@ -255,6 +259,7 @@ total: number;
 Поля класса:
 
 - `_container: HTMLElement` - элемент контейнера модального окна
+- `_template: HTMLTemplateElement;` - темплейт
 - `events: IEvents` - брокер событий
 
 Так же класс предоставляет набор методов:
@@ -269,6 +274,7 @@ total: number;
 Поля класса:
 
 - `_container: HTMLElement` - элемент контейнера модального окна
+- `_template: HTMLTemplateElement;` - темплейт
 - `events: IEvents` - брокер событий
 
 Так же класс предоставляет набор методов:
@@ -284,6 +290,7 @@ total: number;
 Поля класса:
 
 - `_container: HTMLElement` - элемент контейнера модального окна
+- `_template: HTMLTemplateElement;` - темплейт
 - `events: IEvents` - брокер событий
 
 Так же класс предоставляет набор методов:
@@ -304,13 +311,13 @@ total: number;
 #### класс Presenter
 
 Класс отвечает за организацию бизнес-логики приложения и координацию работы между слоями.
-- `constructor(items: ItemModel, cart: CartModel, order: OrderModel, cardView: CardView, cartView: CartView, orderAddressView: OrderAddressView, orderContactsView: OrderContactsView, orderSuccessView: OrderSuccessView, api: ShopApi, events: IEvents)` Конструктор принимает классы модели данных, классы представления, api и также экземпляр класса `EventEmitter` для возможности инициации событий. 
+- `constructor(items: ItemModel, cart: CartModel, order: OrderModel, cardView: CardView, cartView: CartView, orderAddressView: OrderAddressView, orderContactsView: OrderContactsView, orderSuccessView: OrderSuccessView, api: ShopApi, events: IEvents, cartButton: HTMLElement, gallery: HTMLElement, _modalView: ModalView, modalContainer: HTMLElement)` Конструктор принимает классы модели данных, классы представления, api и также экземпляр класса `EventEmitter` для возможности инициации событий. 
 
 Поля класса:
 
 - `_items: ItemModel` - класс отвечающий за хранение карточек
 - `_cart: CartModel` - класс отвечающий за работу с корзиной
-- `_order: OrderModal` - класс отвечающий за обработку заказа
+- `_orderModel: OrderModal` - класс отвечающий за обработку заказа
 - `_cardView: CardView` - класс отвечает за отображение карточек и модального окна товара
 - `_cartView: CartView` - класс отвечает за отображение корзины и управление ее содержимым
 - `_orderAddressView: OrderAddressView` - класс отвечает за отображение модального окна заказа
@@ -318,21 +325,24 @@ total: number;
 - `_orderSuccessView: OrderSuccessView` - класс отвечает за отображение модального окна успешного заказа
 - `_api: ShopApi` - класс отвечает за запросы к серверу
 - `events: IEvents` - брокер событий
- 
+- `gallery: HTMLElement` - основной контейнер страницы
+- `_modalView: ModalView;` - отображение модальных окон
+- `modalContainer: HTMLElement;` - контейнер для отображения
+- `cartButton: HTMLElement;` - кнопка корзины в шапке
+
+
 Методы класса: 
 
-- `init(): void` - инициализация приложения, загрузка товаров из api, отображение списка
-- `calculateTotal(): number` - считает общую сумму корзины
-- `clickItem(id: ItemId): void` - открывает модальное окно с данными товара и вызывает событие для отображения нужного товара
-- `clickAddToCart(id: ItemId): void` - добавляет товар в корзину
-- `clickRemoveFromCart(id: ItemId): void` - удаляет товар из корзины
-- `openCart(): void` - открывает корзину
-- `openOrderAddress(): void` - открывает модальное окно с вводом адреса
-- `submitAddress(address: string, payment: PaymentType): void` - сохраняет данные 
-- `openOrderContacts(): void` - открывает модальное окно с вводом контактов
-- `submitContacts(email: string, phone: string): void` - сохраняет данные
-- `submitOrder(): Promise<void>` - отправляет данные, открывает окно с выполненным заказом
-- `closeModal():void` - закрывает модальное окно
+- `init(): void` - инициализация приложения, загрузка товаров из api, отображение списка и всей работы приложения
+- `renderCatalog(): void` - рендер католога товаров
+- `openItemModal(id: ItemId): void` - открытия товара
+- `openCart(): void` - открытие корзины
+- `openOrderAddress(): void` - открытие модального окна с адресом
+- `openOrderContacts(): void ` - открытие модального окна с контактами
+- `updateCart(): void` - обновление счетчика товаров в шапке
+- `addToCart(id: ItemId): void` - добавление товара в корзину
+- `removeFromCart(id: ItemId): void` - удаление товара из коризны
+- `getCartItems(): IItemCard[]` - получение списка товаров в корзине
 
 Код, описывающий взаимодействие представления и данных между собой находится в файле `index.ts`\
 Взаимодействие осуществляется за счет событий генерируемых с помощью брокера событий и обработчиков этих событий, описанных в `index.ts`\
@@ -341,24 +351,23 @@ total: number;
 *Список всех событий, которые могут генерироваться в системе:*\
 *События изменения данных (генерируются классами моделями данных)*
 - `items:changed` - изменение массива карточек товаров
-- `item:preview` - выбор карточки для открытия в модальном окне
-- `item:previewClear` - очистка данных выбранной для показа карточки 
 - `cart:changed` - изменения содержимого корзины
-- `order:changet` - при изменении данных формы
+- `order:changed` - при изменении данных формы
 - `order:validation` - при валидации формы(boolean)
 
 *События, возникающие при взаимодействии пользователя с интерфейсом (генерируются классами, отвечающими за представление)*
 - `item:click` - открытие модального окна с товаром
 - `item:add` - добавление товара в корзину
 - `item:delete` - удаление товара из корзины(в самой корзине и в модальном окне)
-- `cart:submit` - переход к оформлению заказа
+- `cart:click` - открытие корзины
+- `cart:submit` - переход к следующему окну
 - `order:addressInput` - ввод адреса
 - `order:paymentInput` - выбор оплаты
 - `order:addressSubmit` - подтверждение формы с адресом и типом оплаты
 - `order:contactsInput` - изменение данных
 - `order:contactsSubmit` - подтверждение формы с контактами
-- `order:successClose` - кнопка в финальном окне для закрытия
 - `modal:close` - закрытие любого модального окна
+- `modal:open` - открытие модального окна
 
 
 

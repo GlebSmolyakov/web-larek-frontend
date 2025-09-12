@@ -10,6 +10,10 @@
     padding: 0;
     margin: 0;
     flex-grow: 1;
+    list-style: none;
+    overflow-y: auto;
+    max-height: 410px;
+    scrollbar-color: $primary #f0f0f0;
   }
 
   &__item {
@@ -34,6 +38,11 @@
       @include mixins.link($hover, white);
       opacity: 0.5;
       margin-left: 4rem;
+    }
+
+    &-clear {
+      opacity: 0.25;
+      font-size: 30px;
     }
   }
 }
