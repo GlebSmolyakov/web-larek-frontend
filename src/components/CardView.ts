@@ -54,6 +54,7 @@ export class CardView {
 
 		if (type === 'catalog') {
 			this.title.textContent = card.title;
+			this.category.textContent = card.category;
 			this.category.className = 'card__category';
 			this.category.classList.add(`card__category_${this.categoryClass[card.category.toLowerCase()]}`);
 			this.price.textContent = card.price ? `${card.price} синапсов` : 'Бесценно';
@@ -68,6 +69,8 @@ export class CardView {
 			this.price.textContent = card.price ? `${card.price} синапсов` : 'Бесценно';
 			this.image.src = card.image;
 			this.image.alt = card.title;
+			this.category.className = 'card__category';
+			this.category.classList.add(`card__category_${this.categoryClass[card.category.toLowerCase()]}`);
 
 			if (card.price === null) {
 				this.button.disabled = true;
