@@ -4,46 +4,49 @@ export class OrderContactsView {
 	private container: HTMLElement;
 	private template: HTMLTemplateElement;
 	private events: IEvents;
+	private form: HTMLElement;
+	private emailInput: HTMLInputElement;
+	private phoneInput: HTMLInputElement;
+	private submitButton: HTMLButtonElement;
 
 	constructor(container: HTMLElement, events: IEvents) {
 		this.container = container;
 		this.events = events;
+
 		this.template = document.getElementById('contacts') as HTMLTemplateElement;
+		this.form = this.template.content.firstElementChild!.cloneNode(true) as HTMLElement;
+
+		this.emailInput = this.form.querySelector<HTMLInputElement>('input[name="email"]')!;
+		this.phoneInput = this.form.querySelector<HTMLInputElement>('input[name="phone"]')!;
+		this.submitButton = this.form.querySelector<HTMLButtonElement>('button')!;
+
+		this.emailInput.addEventListener('input', () => {
+			this.events.emit('order:input', { key: 'email', value: this.emailInput.value });
+		});
+
+		this.phoneInput.addEventListener('input', () => {
+			this.events.emit('order:input', { key: 'phone', value: this.phoneInput.value });
+		});
+
+		this.form.addEventListener('submit', (e) => {
+			e.preventDefault();
+			this.events.emit('order:contactsSubmit', {
+				email: this.emailInput.value,
+				phone: this.phoneInput.value
+			});
+		});
 	}
 
 	render(): HTMLElement {
-		const form = this.template.content.firstElementChild!.cloneNode(true) as HTMLElement;
+		return this.form;
+	}
 
-		const emailInput = form.querySelector<HTMLInputElement>('input[name="email"]')!;
-		const phoneInput = form.querySelector<HTMLInputElement>('input[name="phone"]')!;
-		const submitBtn = form.querySelector<HTMLButtonElement>('button')!;
+	setSubmitEnabled(enabled: boolean): void {
+		this.submitButton.disabled = !enabled;
+	}
 
-		const validate = () => {
-			const isValid = emailInput.value.trim() !== '' && phoneInput.value.trim() !== '';
-			submitBtn.disabled = !isValid;
-			return isValid;
-		};
-
-		emailInput.addEventListener('input', () => {
-			this.events.emit('order:emailInput', { email: emailInput.value });
-			validate();
-		});
-
-		phoneInput.addEventListener('input', () => {
-			this.events.emit('order:phoneInput', { phone: phoneInput.value });
-			validate();
-		});
-
-		form.addEventListener('submit', (e) => {
-			e.preventDefault();
-			if (!validate()) return;
-			this.events.emit('order:contactsSubmit', {
-				email: emailInput.value,
-				phone: phoneInput.value
-			});
-		});
-
-		this.container.appendChild(form);
-		return form;
+	reset(): void {
+		this.emailInput.value = '';
+		this.phoneInput.value = '';
 	}
 }

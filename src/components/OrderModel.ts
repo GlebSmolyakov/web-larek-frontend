@@ -11,7 +11,7 @@ export class OrderModel {
 			address: '',
 			email: '',
 			phone: '',
-			payment: 'online'
+			payment: null
 		}
 	}
 
@@ -21,13 +21,14 @@ export class OrderModel {
 		} else {
 			this._data[key] = value;
 		}
-
-		this.events.emit('order:changed')
+		this.events.emit('order:changed');
 	}
 
 	validateInput(input: IOrderFormInput): boolean {
-		if (input === 'payment') return true;
-
+		if (input === 'payment') {
+			return this._data.payment !== null &&
+				(this._data.payment === 'online' || this._data.payment === 'offline');
+		}
 		const value = this._data[input];
 		if (typeof value !== 'string') return false;
 
@@ -45,9 +46,13 @@ export class OrderModel {
 			address: '',
 			email: '',
 			phone: '',
-			payment: 'online'
+			payment: null
 		}
 		this.events.emit('order:changed')
+	}
+
+	get data(): IOrderForm {
+		return { ...this._data };
 	}
 }
 

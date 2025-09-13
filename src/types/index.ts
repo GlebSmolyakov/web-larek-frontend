@@ -20,7 +20,7 @@ export type ItemId = IItem['id']; // описание id карточки
 
 //@todo  интерфейс для заказа
 
-export type PaymentType = "online" | "offline"; // типизируем тип оплаты
+export type PaymentType = "online" | "offline" | null; // типизируем тип оплаты
 
 export interface IOrder { // интерфейс заказа для отправки на сервер
 	payment: PaymentType;

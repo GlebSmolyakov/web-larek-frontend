@@ -5,58 +5,64 @@ export class OrderAddressView {
 	private container: HTMLElement;
 	private template: HTMLTemplateElement;
 	private events: IEvents;
+	private addressInput: HTMLInputElement;
+	private onlineButton: HTMLButtonElement;
+	private offlineButton: HTMLButtonElement;
+	private submitButton: HTMLButtonElement;
+	private form: HTMLElement;
 
 	constructor(container: HTMLElement, events: IEvents) {
 		this.container = container;
 		this.events = events;
+
 		this.template = document.getElementById('order') as HTMLTemplateElement;
+		this.form = this.template.content.firstElementChild.cloneNode(true) as HTMLFormElement;
+
+		this.addressInput = this.form.querySelector('input[name="address"]')!;
+		this.onlineButton = this.form.querySelector('button[name="card"]')!;
+		this.offlineButton = this.form.querySelector('button[name="cash"]')!;
+		this.submitButton = this.form.querySelector('button.order__button')!;
+
+		this.addressInput.addEventListener('input', () => {
+			this.events.emit('order:input', { key: "address", value: this.addressInput.value });
+		});
+
+		this.onlineButton.addEventListener('click', () => {
+			this.events.emit('order:input', { key: "payment", value: 'online' });
+		});
+
+		this.offlineButton.addEventListener('click', () => {
+			this.events.emit('order:input', { key: "payment", value: 'offline' });
+		});
+
+		this.submitButton.addEventListener('click', (e) => {
+			e.preventDefault();
+			this.events.emit('order:addressSubmit');
+		});
 	}
 
 	render(): HTMLElement {
-		const form = this.template.content.firstElementChild!.cloneNode(true) as HTMLElement;
+		return this.form
+	}
 
-		const addressInput = form.querySelector<HTMLInputElement>('input[name="address"]')!;
-		const onlineBtn = form.querySelector<HTMLButtonElement>('button[name="card"]')!;
-		const cashBtn = form.querySelector<HTMLButtonElement>('button[name="cash"]')!;
-		const submitBtn = form.querySelector<HTMLButtonElement>('button.order__button')!;
+	setPaymentActive(payment: PaymentType) {
+		if (payment === 'online') {
+			this.onlineButton.classList.add('button_alt-active');
+			this.offlineButton.classList.remove('button_alt-active');
+		} else if (payment === 'offline') {
+			this.onlineButton.classList.remove('button_alt-active');
+			this.offlineButton.classList.add('button_alt-active');
+		} else {
+			this.onlineButton.classList.remove('button_alt-active');
+			this.offlineButton.classList.remove('button_alt-active');
+		}
+	}
 
-		let payment: PaymentType | null = null;
+	setSubmitEnabled(enabled: boolean): void {
+		this.submitButton.disabled = !enabled;
+	}
 
-		onlineBtn.addEventListener('click', () => {
-			payment = 'online';
-			this.events.emit('order:paymentInput', { payment });
-
-			onlineBtn.classList.add('button_alt-active');
-			cashBtn.classList.remove('button_alt-active');
-
-			submitBtn.disabled = !addressInput.value;
-		});
-
-		cashBtn.addEventListener('click', () => {
-			payment = 'offline';
-			this.events.emit('order:paymentInput', { payment });
-
-			onlineBtn.classList.remove('button_alt-active');
-			cashBtn.classList.add('button_alt-active');
-
-			submitBtn.disabled = !addressInput.value;
-		});
-
-		addressInput.addEventListener('input', () => {
-			this.events.emit('order:addressInput', { addressInput: addressInput.value });
-			submitBtn.disabled = !addressInput.value || !payment;
-		});
-
-		form.addEventListener('submit', (e) => {
-			e.preventDefault();
-			if (!payment || !addressInput.value) return;
-			this.events.emit('order:addressSubmit', {
-				payment,
-				address: addressInput.value
-			});
-		});
-
-		this.container.appendChild(form);
-		return form;
+	reset(): void {
+		this.addressInput.value = '';
 	}
 }

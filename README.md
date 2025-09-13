@@ -231,25 +231,64 @@ export interface IOrderForm {
 
 - `_template: HTMLTemplateElement` - элемент контейнера модального окна
 - `events: IEvents` - брокер событий
+- `currentId: string | null = null` - id
+- `element: HTMLElement` - элемент
+- `title: HTMLElement` - заголовок
+- `category: HTMLElement` - категория
+- `description: HTMLElement` - описание
+- `price: HTMLElement` - цена
+- `image: HTMLImageElement` - изображение
+- `button : HTMLButtonElement` - кнопка
+- `categoryClass: Record<string, string> = {'софт-скил': 'soft', 'хард-скил': 'hard', 'другое': 'other', 'дополнительное': 'additional', 'кнопка': 'button' }` - категории для цвета
 
 Так же класс предоставляет набор методов:
 
-- `render(card: IItemCard, inCart: boolean): HTMLElement` - рендорит карточку
+- `render(): HTMLElement` - рендорит карточку
+- `setCardData(card: IItemCard, inCart: boolean, type: 'catalog' | 'preview')` - сохроняет текущие данные для отображения
 
 #### Класс CartView
 
 Класс отвечает за отображение корзины в модальном окне
 
-- `constructor(container: HTMLElement, events: IEvents)` Конструктор принимает селектор, по которому будет идентифицированы разметка корзины и также экземпляр класса `EventEmitter` для возможности инициации событий.
+- `constructor(container: HTMLElement, openButton: HTMLElement,, events: IEvents)` Конструктор принимает селектор, по которому будет идентифицированы разметка корзины и также экземпляр класса `EventEmitter` для возможности инициации событий.
 
 Поля класса:
 
 - `_container: HTMLElement` - элемент контейнера модального окна
 - `events: IEvents` - брокер событий
+- `template: HTMLTemplateElement` - темплейт
+- `openButton: HTMLElement` - кнопка открытия
+- `_list: HTMLElement` - отображение списка товаров
+- `_total: HTMLElement` - итоговая сумма
+- `orderButton: HTMLButtonElement` - кнопка оформить
+- `_basket: HTMLElement` - корзина
 
 Так же класс предоставляет набор методов:
 
-- `render(items: IItemCard[], total: number): HTMLElement` - рендорит корзину
+- `render(): HTMLElement` - рендорит корзину
+- `set list` - устанавливает сумму
+- `set total` - устанавливает цену
+
+#### Класс CartViewItem 
+
+Класс отвечает за отображение списка товаров
+
+- `constructor(item: IItemCard, events: IEvents)` Констурктор принимает карточку для создания разметки и также экземпляр класса `EventEmitter` для возможности инициации событий.
+
+Поля класса: 
+
+- `item: IItemCard` - товар
+- `events: IEvents` - брокер событий
+- `element: HTMLElement` - элемент 
+- `deleteButton: HTMLButtonElement` - кнопка удаления
+- `index: HTMLElement` - порядковый номер
+- `title: HTMLElement` - название
+- `price: HTMLElement` - цена
+
+Так же класс предоставляет набор методов:
+
+- `setIndex(index: number)` - устанавливает порядковый номер
+- `render(): HTMLElement` - рендорит разметку
 
 #### Класс OrderAddressView
 
@@ -258,13 +297,21 @@ export interface IOrderForm {
 
 Поля класса:
 
-- `_container: HTMLElement` - элемент контейнера модального окна
-- `_template: HTMLTemplateElement;` - темплейт
+- `container: HTMLElement` - контейнер
+- `template: HTMLTemplateElement` - темплейт
 - `events: IEvents` - брокер событий
+- `addressInput: HTMLInputElement` - поле ввода адреса
+- `onlineButton: HTMLButtonElement` - кнопка оплаты
+- `offlineButton: HTMLButtonElement` - кнопка оплаты
+- `submitButton: HTMLButtonElement` - кнопка перейти далее
+- `form: HTMLElement` - разметка формы
 
 Так же класс предоставляет набор методов:
 
 - `render(): HTMLElement` - отрисовывает форму
+- `setPaymentActive(payment: PaymentType)` - показывает активный выбор оплаты
+- `setSubmitEnabled` - показывает кнопку
+- `reset(): void` - очищает поля 
 
 #### Класс OrderContactsView
 
@@ -273,14 +320,19 @@ export interface IOrderForm {
 
 Поля класса:
 
-- `_container: HTMLElement` - элемент контейнера модального окна
-- `_template: HTMLTemplateElement;` - темплейт
+- `container: HTMLElement` - контейнер
+- `template: HTMLTemplateElement` - темплейт
 - `events: IEvents` - брокер событий
+- `emailInput: HTMLInputElement` - поле ввода email
+- `phoneInput: HTMLInputElement` - поле ввода телефона
+- `submitButton: HTMLButtonElement` - кнопка перейти далее
+- `form: HTMLElement` - разметка формы
 
 Так же класс предоставляет набор методов:
 
 - `render(): HTMLElement` - отрисовывает форму
-
+- `setSubmitEnabled` - показывает кнопку
+- `reset(): void` - очищает поля
 
 #### Класс OrderSuccessView
 
@@ -307,6 +359,18 @@ export interface IOrderForm {
 
 Презентер отвечает за координацию работы между моделями ItemModel, CartModal и OrderModal, представлениями ModalView, CardView, CartView, OrderAddressView, OrderContactsView и OrderSuccessView, а также внешним слоем ModalApi 
 Он подписывается на события от представления, обрабатывает бизнес-логику и вызывает соответствующие методы модели и обновления UI.\
+
+#### Класс Page
+
+Класс хранит DOM элементы для работы
+
+Поля класса:
+
+- `modalContainer: HTMLElement` - модальное окно
+- `gallery: HTMLElement` - галерея
+- `cartButton: HTMLElement` - кнопка в корзине 
+- `counter: HTMLElement` - счетчик товаров
+
 
 #### класс Presenter
 
@@ -361,10 +425,8 @@ export interface IOrderForm {
 - `item:delete` - удаление товара из корзины(в самой корзине и в модальном окне)
 - `cart:click` - открытие корзины
 - `cart:submit` - переход к следующему окну
-- `order:addressInput` - ввод адреса
-- `order:paymentInput` - выбор оплаты
+- `order:input` - ввод в данных в input
 - `order:addressSubmit` - подтверждение формы с адресом и типом оплаты
-- `order:contactsInput` - изменение данных
 - `order:contactsSubmit` - подтверждение формы с контактами
 - `modal:close` - закрытие любого модального окна
 - `modal:open` - открытие модального окна

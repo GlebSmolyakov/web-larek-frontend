@@ -6,29 +6,31 @@ import { API_URL, CDN_URL } from './utils/constants';
 import { CardView } from './components/CardView';
 import { CartModel } from './components/CartModel';
 import { ModalView } from './components/ModalView';
-import { IItemCard, ItemId, PaymentType } from './types';
+import { IItemCard, IOrderFormInput, ItemId, PaymentType } from './types';
 import { CartView } from './components/CartView';
 import { OrderModel } from './components/OrderModel';
 import { OrderAddressView } from './components/OrderAddressView';
 import { OrderContactsView } from './components/OrderContactsView';
 import { OrderSuccessView } from './components/OrderSuccesView';
+import { CartViewItem } from './components/CartViewItem';
+import { Page } from './components/Page';
 
 
 export class Presenter {
 	private _items: ItemModel;
 	private _cart: CartModel;
-	private _cardView: CardView;
 	private _api: ShopApi;
 	private events: IEvents;
-	private gallery: HTMLElement;
 	private _modalView: ModalView;
-	private modalContainer: HTMLElement;
 	private _cartView: CartView;
-	private cartButton: HTMLElement;
 	private _orderModel: OrderModel;
 	private _orderAddressView: OrderAddressView;
 	private _orderContactsView: OrderContactsView;
 	private _orderSuccessView: OrderSuccessView;
+	private activeModal: 'cart' | 'item' | 'order-contacts' | 'order-address' | null = null;
+	private cartViewItems: CartViewItem[] = [];
+	private page : Page;
+	private _modalCardView: CardView | null = null;
 
 	constructor() {
 		this.events = new EventEmitter();
@@ -36,29 +38,25 @@ export class Presenter {
 		this._cart = new CartModel(this.events);
 		this._api = new ShopApi(API_URL);
 
-		this.modalContainer = document.getElementById('modal-container') as HTMLElement;
-		this.gallery = document.querySelector('.gallery') as HTMLElement;
-		this.cartButton = document.querySelector('.header__basket') as HTMLElement;
-
-		this._modalView = new ModalView(this.modalContainer, this.events);
-		this._cardView = new CardView('card-catalog', this.events);
-		this._cartView = new CartView(this.modalContainer, this.cartButton, this.events);
+		this.page = new Page();
+		this._modalView = new ModalView(this.page.modalContainer, this.events);
+		this._cartView = new CartView(this.page.modalContainer, this.page.cartButton, this.events);
 		this._orderModel = new OrderModel(this.events);
-		this._orderAddressView = new OrderAddressView(this.modalContainer, this.events);
-		this._orderContactsView = new OrderContactsView(this.modalContainer, this.events);
-		this._orderSuccessView = new OrderSuccessView(this.modalContainer, this.events);
+		this._orderAddressView = new OrderAddressView(this.page.modalContainer, this.events);
+		this._orderContactsView = new OrderContactsView(this.page.modalContainer, this.events);
+		this._orderSuccessView = new OrderSuccessView(this.page.modalContainer, this.events);
 
 		this.init();
 	}
 
 	init() {
 		this._api.getProducts().then(data => {
-			const getItems = data.items.map(item => ({
+			const newItems = data.items.map(item => ({
 				...item,
 				image: CDN_URL + item.image
 			}));
-			this._items.setItems(getItems);
-		});
+			this._items.setItems(newItems);
+		}) .catch(err => console.error('Ошибка загрузки товаров:', err));
 
 		this.events.on('items:changed', () => { // отображаем каталог
 			this.renderCatalog();
@@ -81,15 +79,18 @@ export class Presenter {
 
 		this.events.on('item:add', (data: { id: ItemId }) => { // слушает добавление карточки
 			this.addToCart(data.id);
-			if (this.activeModal === 'item') {
-				this.openItemModal(data.id);
+
+			if (this.activeModal === 'item' && this._modalCardView) {
+				const item = this._items.getItem(data.id);
+				this._modalCardView.setCardData(item, true, 'preview');
 			}
 		});
 
 		this.events.on('item:delete', (data: { id: ItemId }) => { // слушает удаление карточки
 			this.removeFromCart(data.id);
-			if (this.activeModal === 'item') {
-				this.openItemModal(data.id);
+			if (this.activeModal === 'item' && this._modalCardView) {
+				const item = this._items.getItem(data.id);
+				this._modalCardView.setCardData(item, false, 'preview');
 			}
 		});
 
@@ -97,25 +98,17 @@ export class Presenter {
 			this.openOrderAddress();
 		})
 
-		this.events.on('order:paymentInput', (data: { payment: PaymentType }) => {  // работа с инпутом, сохранение и валидация
-			this._orderModel.updateInput('payment', data.payment);
-		});
-
-		this.events.on('order:addressInput', (data: { addressInput: string }) => {  // работа с инпутом, сохранение и валидация
-			this._orderModel.updateInput('address', data.addressInput);
+		this.events.on('order:changed', () => {
+			this.updateOrderFormView()
 		});
 
 		this.events.on('order:addressSubmit', () => { // переход к следующему модальному окну
 			this.openOrderContacts();
 		});
 
-		this.events.on('order:emailInput', (data: { email: string}) => {   // работа с инпутом, сохранение и валидация
-			this._orderModel.updateInput('email', data.email);
-		});
-
-		this.events.on('order:phoneInput', (data: { phone: string}) => {   // работа с инпутом, сохранение и валидация
-			this._orderModel.updateInput('phone', data.phone);
-		});
+		this.events.on('order:input', (data: {key: IOrderFormInput, value: string | PaymentType}) => {
+			this._orderModel.updateInput(data.key, data.value);
+		})
 
 		this.events.on('order:contactsSubmit', async () => { // проверяет валидность, отправляет данные на сервер, в случае успеха выводит модалку с успешным заказом
 
@@ -141,6 +134,8 @@ export class Presenter {
 
 				this._cart.clearCart();
 				this._orderModel.clear();
+				this._orderAddressView.reset();
+				this._orderContactsView.reset();
 
 				const successForm = this._orderSuccessView.render(response);
 				this._modalView.open(successForm);
@@ -150,51 +145,76 @@ export class Presenter {
 		});
 	}
 
-	private activeModal: 'cart' | 'item' | null = null;
-
 	private renderCatalog() {
-		this.gallery.innerHTML = '';
+		this.page.gallery.innerHTML = '';
 		const items = this._items.getAllItems();
 
 		items.forEach(item => {
-			const card = this._cardView.render(item, false);
-			this.gallery.appendChild(card);
+			const cardView = new CardView('card-catalog', this.events);
+			cardView.setCardData(item, this._cart.items.includes(item.id), 'catalog');
+			this.page.gallery.appendChild(cardView.render());
 		});
 	}
 
 	private openItemModal(id: ItemId): void {
 		const item = this._items.getItem(id);
-
-		const modalCardView = new CardView('card-preview', this.events);
 		const inCart = this._cart.items.includes(id);
-		const modalContent = modalCardView.render(item, inCart);
-		this.activeModal = 'item';
 
-		this._modalView.open(modalContent);
+		if (!this._modalCardView) {
+			this._modalCardView = new CardView('card-preview', this.events);
+		}
+
+		this._modalCardView.setCardData(item, inCart, 'preview');
+		this._modalView.open(this._modalCardView.render());
+		this.activeModal = 'item';
 	}
 
 	private openCart(): void {
 		const cartItems = this.getCartItems();
 		const total = this._cart.getTotal(cartItems);
 
+		const basketElements = cartItems.map((item, index) => {
+			const cartViewItem = new CartViewItem(item, this.events);
+			cartViewItem.setIndex(index);
+			this.cartViewItems.push(cartViewItem);
+			return cartViewItem.render();
+		});
+
+		this._cartView.list = basketElements;
+		this._cartView.total = total;
 		this.activeModal = 'cart';
-		const basket = this._cartView.render(cartItems, total);
-		this._modalView.open(basket);
+
+		this._modalView.open(this._cartView.render());
 	}
 
 	private openOrderAddress(): void {
 		const form = this._orderAddressView.render();
 		this._modalView.open(form);
+		this.activeModal = 'order-address';
 	}
 
 	private openOrderContacts(): void {
 		const form = this._orderContactsView.render();
 		this._modalView.open(form);
+		this.activeModal = 'order-contacts';
+	}
+
+	private updateOrderFormView(): void {
+		if (this.activeModal === 'order-address') {
+			const isAddressValid = this._orderModel.validateInput('address');
+			const isPaymentValid = this._orderModel.validateInput('payment');
+			this._orderAddressView.setPaymentActive(this._orderModel.data.payment);
+			this._orderAddressView.setSubmitEnabled(isAddressValid && isPaymentValid);
+		}
+		if (this.activeModal === 'order-contacts') {
+			const isEmailValid = this._orderModel.validateInput('email');
+			const isPhoneValid = this._orderModel.validateInput('phone');
+			this._orderContactsView.setSubmitEnabled(isEmailValid && isPhoneValid);
+		}
 	}
 
 	private updateCart(): void {
-		const counter = document.querySelector('.header__basket-counter') as HTMLElement;
-		counter.textContent = this._cart.count.toString();
+		this.page.counter.textContent = this._cart.count.toString();
 	}
 
 	private addToCart(id: ItemId): void {
