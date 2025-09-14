@@ -64,5 +64,8 @@ export class OrderAddressView {
 
 	reset(): void {
 		this.addressInput.value = '';
+		this.onlineButton.classList.remove('button_alt-active');
+		this.offlineButton.classList.remove('button_alt-active');
+		this.submitButton.disabled = true;
 	}
 }

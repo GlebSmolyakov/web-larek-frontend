@@ -70,28 +70,39 @@ export class Presenter {
 			this.openCart();
 		});
 
-		this.events.on('cart:changed', () => { // перерисовываем корзину
+		this.events.on('cart:changed', () => {
 			this.updateCart();
+
 			if (this.activeModal === 'cart') {
-				this.openCart();
+				const cartItems = this.getCartItems();
+				const total = this._cart.getTotal(cartItems);
+
+				const basketElements = cartItems.map((item, index) => {
+					const cartViewItem = new CartViewItem(item, this.events);
+					cartViewItem.setIndex(index);
+					return cartViewItem.render();
+				});
+
+				this._cartView.list = basketElements;
+				this._cartView.total = total;
 			}
+
+			if (this.activeModal === 'item' && this._modalCardView) {
+				const currentId = this._modalCardView.getCurrentId?.();
+				if (currentId) {
+					const inCart = this._cart.items.includes(currentId);
+					this._modalCardView.setInCart(inCart);
+				}
+			}
+
 		});
 
-		this.events.on('item:add', (data: { id: ItemId }) => { // слушает добавление карточки
+		this.events.on('item:add', (data: { id: ItemId }) => {
 			this.addToCart(data.id);
-
-			if (this.activeModal === 'item' && this._modalCardView) {
-				const item = this._items.getItem(data.id);
-				this._modalCardView.setCardData(item, true, 'preview');
-			}
 		});
 
-		this.events.on('item:delete', (data: { id: ItemId }) => { // слушает удаление карточки
+		this.events.on('item:delete', (data: { id: ItemId }) => {
 			this.removeFromCart(data.id);
-			if (this.activeModal === 'item' && this._modalCardView) {
-				const item = this._items.getItem(data.id);
-				this._modalCardView.setCardData(item, false, 'preview');
-			}
 		});
 
 		this.events.on('cart:submit', () => { // переход к следующему модальному окну
@@ -99,6 +110,7 @@ export class Presenter {
 		})
 
 		this.events.on('order:changed', () => {
+
 			this.updateOrderFormView()
 		});
 
@@ -111,12 +123,6 @@ export class Presenter {
 		})
 
 		this.events.on('order:contactsSubmit', async () => { // проверяет валидность, отправляет данные на сервер, в случае успеха выводит модалку с успешным заказом
-
-			const isValid = this._orderModel.validateForm();
-
-			if (!isValid) {
-				console.log('ошибка')
-			}
 			const cartItems = this.getCartItems();
 			const total = this._cart.getTotal(cartItems);
 

@@ -49,6 +49,22 @@ export class CardView {
 		});
 	}
 
+	getCurrentId(): string | null {
+		return this.currentId;
+	}
+
+	setInCart(inCart: boolean): void {
+		if (!this.button || this.currentId === null) return;
+
+		if (inCart) {
+			this.button.textContent = 'Удалить из корзины';
+			this.button.dataset.action = 'item:delete';
+		} else {
+			this.button.textContent = 'В корзину';
+			this.button.dataset.action = 'item:add';
+		}
+	}
+
 	setCardData(card: IItemCard, inCart: boolean, type: 'catalog' | 'preview') {
 		this.currentId = card.id;
 
@@ -77,10 +93,8 @@ export class CardView {
 				this.button.textContent = 'Недоступно';
 			} else {
 				this.button.disabled = false;
-				this.button.textContent = inCart ? 'Удалить из корзины' : 'В корзину';
-				this.button.dataset.action = inCart ? 'item:delete' : 'item:add';
+				this.setInCart(inCart);
 			}
-
 		}
 	}
 
